@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adaptive-courier-rl"
+version = "1.0.0"
+description = "Adaptive courier routing with reinforcement learning on real-world OpenStreetMap road networks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+keywords = ["reinforcement-learning", "routing", "osmnx", "gymnasium", "logistics", "ppo"]
+dependencies = [
+    "gymnasium>=0.29",
+    "stable-baselines3>=2.3",
+    "torch>=2.2",
+    "numpy>=1.26",
+    "pandas>=2.0",
+    "osmnx>=2.0",
+    "networkx>=3.2",
+    "shapely>=2.0",
+    "folium>=0.16",
+    "matplotlib>=3.8",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dashboard = ["streamlit>=1.30", "plotly>=5.18"]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[tool.setuptools]
+packages = [
+    "src",
+    "src.map",
+    "src.simulation",
+    "src.envs",
+    "src.agents",
+    "src.baselines",
+    "src.visualization",
+    "src.utils",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+exclude = ["data", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501", "B008", "B905"]
+
+[tool.ruff.lint.per-file-ignores]
+# scripts/*.py import `_bootstrap` only for its sys.path side effect.
+"scripts/*" = ["F401", "E402"]
+"src/visualization/dashboard.py" = ["E402"]
+"tests/*" = ["E402"]

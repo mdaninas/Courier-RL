@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Courier RL</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234f46e5'/%3E%3Cstop offset='1' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='24' height='24' rx='6' fill='url(%23g)'/%3E%3Cg transform='translate(1.6 1.4) scale(0.88)' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='5.4' cy='18' r='2' fill='%23fff' stroke='none'/%3E%3Cpath d='M5.4 18c0-6 11-3 11-8.4' stroke-dasharray='0.1 3.4'/%3E%3Cpath d='M16.4 3.2a4.3 4.3 0 0 0-4.3 4.3c0 3 4.3 7.1 4.3 7.1s4.3-4.1 4.3-7.1a4.3 4.3 0 0 0-4.3-4.3z'/%3E%3Ccircle cx='16.4' cy='7.5' r='1.6' fill='%23fff' stroke='none'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --panel:rgba(255,255,255,.94); --panel-brd:rgba(15,23,42,.07);
+    --ink:#0f172a; --mut:#64748b; --faint:#94a3b8; --line:#e7eaf0;
+    --normal:#2563eb; --express:#7c3aed; --urgent:#dc2626;
+    --accent:#4f46e5; --accent2:#06b6d4; --ok:#10b981; --danger:#ef4444;
+    --sh-sm:0 1px 2px rgba(15,23,42,.06);
+    --sh:0 8px 28px rgba(15,23,42,.12);
+    --sh-lg:0 18px 50px rgba(15,23,42,.20);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    color:var(--ink);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  #map{position:absolute;inset:0;z-index:0;background:#dfe7ef;}
+  .leaflet-container{font-family:inherit;}
+  .leaflet-control-zoom{border:none!important;box-shadow:var(--sh)!important;border-radius:12px!important;overflow:hidden;}
+  .leaflet-control-zoom a{border:none!important;color:var(--ink)!important;background:rgba(255,255,255,.94)!important;}
+  .leaflet-control-attribution{background:rgba(255,255,255,.7)!important;border-radius:6px 0 0 0;font-size:10px;}
+
+  .glass{position:absolute;z-index:1000;background:var(--panel);backdrop-filter:blur(18px) saturate(140%);
+    -webkit-backdrop-filter:blur(18px) saturate(140%);border:1px solid var(--panel-brd);border-radius:18px;box-shadow:var(--sh);}
+
+  #sidebar{top:18px;left:18px;width:290px;padding:16px;max-height:calc(100vh - 36px);overflow-y:auto;}
+  #sidebar::-webkit-scrollbar{width:8px;}
+  #sidebar::-webkit-scrollbar-thumb{background:#d8def0;border-radius:8px;}
+  .brandrow{display:flex;align-items:center;gap:12px;}
+  .logo{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;flex:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 6px 16px rgba(79,70,229,.45);}
+  .brandrow h1{font-size:15.5px;margin:0;font-weight:800;letter-spacing:-.3px;line-height:1;}
+  .tag{font-size:9.5px;color:var(--faint);font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-top:4px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;margin-top:11px;font-size:11.5px;font-weight:600;
+    color:var(--mut);background:#f1f5f9;padding:4px 11px;border-radius:20px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px rgba(16,185,129,.2);}
+  .divider{height:1px;background:var(--line);margin:15px 0;}
+  .block{margin-bottom:16px;} .block:last-child{margin-bottom:0;}
+  .sec{font-size:10.5px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.7px;margin:0 0 8px;}
+  select{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--line);font-size:13.5px;background:#fff;
+    font-weight:600;color:var(--ink);cursor:pointer;appearance:none;transition:.15s;
+    background-image:url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' fill='none' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 13px center;}
+  select:hover{border-color:#cbd5e1;}
+  select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,70,229,.15);}
+  .seg{display:flex;gap:5px;background:#f1f5f9;padding:4px;border-radius:12px;}
+  .seg button{flex:1;padding:7px 0;font-size:12px;font-weight:700;border-radius:9px;border:none;cursor:pointer;
+    background:transparent;color:var(--mut);transition:.15s;}
+  .seg button:hover{color:var(--ink);}
+  .seg button[data-p=normal].active{background:#fff;color:var(--normal);box-shadow:var(--sh-sm);}
+  .seg button[data-p=express].active{background:#fff;color:var(--express);box-shadow:var(--sh-sm);}
+  .seg button[data-p=urgent].active{background:#fff;color:var(--urgent);box-shadow:var(--sh-sm);}
+  .btns{display:flex;gap:8px;}
+  .btn{flex:1;padding:10px;border-radius:11px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:700;
+    cursor:pointer;color:var(--ink);transition:.15s;}
+  .btn:hover{background:#f8fafc;border-color:#cbd5e1;transform:translateY(-1px);}
+  .btn:active{transform:translateY(0);}
+  .btn.tgl.on{background:linear-gradient(135deg,rgba(79,70,229,.1),rgba(6,182,212,.1));border-color:rgba(79,70,229,.4);color:var(--accent);}
+  .hint{font-size:11px;color:var(--mut);line-height:2;margin:12px 0 0;padding-top:12px;border-top:1px solid var(--line);}
+  .kbd{display:inline-block;background:#f1f5f9;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;
+    padding:1px 6px;font-weight:700;color:#475569;font-size:10.5px;}
+
+  #stats{top:18px;right:18px;width:266px;padding:16px;}
+  .stats-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;}
+  .stats-head .t{font-size:13px;font-weight:800;} .stats-head .c{color:var(--accent);}
+  .policy-pill{font-size:10.5px;font-weight:700;color:var(--accent);background:rgba(79,70,229,.1);
+    padding:4px 10px;border-radius:20px;white-space:nowrap;}
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:13px;padding:10px 12px;}
+  .tile .v{font-size:20px;font-weight:800;letter-spacing:-.5px;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .tile .k{font-size:10.5px;color:var(--mut);font-weight:600;margin-top:3px;}
+  .tile.hero{grid-column:span 2;display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;box-shadow:0 8px 20px rgba(79,70,229,.35);}
+  .tile.hero .v{font-size:27px;color:#fff;} .tile.hero .k{color:rgba(255,255,255,.85);}
+  .tile.warn .v{color:var(--danger);}
+
+  #player{bottom:20px;left:50%;transform:translateX(-50%);width:min(580px,calc(100vw - 660px));min-width:380px;
+    padding:12px 18px;display:flex;align-items:center;gap:15px;}
+  .pbtn{width:40px;height:40px;border-radius:12px;border:none;cursor:pointer;font-size:15px;display:grid;place-items:center;
+    background:#f1f5f9;color:var(--ink);transition:.15s;flex:none;}
+  .pbtn:hover{background:#e2e8f0;transform:translateY(-1px);}
+  .pbtn.play{width:48px;height:48px;font-size:18px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    box-shadow:0 8px 18px rgba(79,70,229,.45);}
+  .clock{flex:none;text-align:center;min-width:56px;}
+  .clock .v{font-variant-numeric:tabular-nums;font-weight:800;font-size:16px;}
+  .clock .lbl{font-size:8.5px;color:var(--faint);font-weight:700;letter-spacing:.7px;display:block;margin-top:1px;}
+  .pbar{flex:1;}
+  .prow{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut);font-weight:600;margin-bottom:5px;}
+  .track{height:7px;background:#e9edf3;border-radius:10px;overflow:hidden;}
+  .fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:10px;transition:width .06s linear;}
+  .speed{flex:none;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--mut);font-weight:700;}
+  .speed input{width:68px;accent-color:var(--accent);cursor:pointer;}
+
+  .legend .lh{font-size:10.5px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.7px;margin-bottom:9px;}
+  .legend .row{display:flex;align-items:center;gap:14px;margin:6px 0;color:#475569;font-weight:600;font-size:11.5px;}
+  .legend .row span{display:inline-flex;align-items:center;gap:5px;}
+  .sw{width:12px;height:12px;border-radius:50%;display:inline-block;flex:none;}
+  .swl{width:16px;height:3px;border-radius:2px;display:inline-block;flex:none;}
+
+  #toast{position:absolute;top:18px;left:50%;transform:translateX(-50%) translateY(-72px);z-index:1300;
+    background:rgba(15,23,42,.96);color:#fff;padding:9px 17px;border-radius:30px;font-size:12.5px;font-weight:600;
+    display:flex;align-items:center;gap:9px;box-shadow:var(--sh-lg);transition:transform .3s cubic-bezier(.2,.9,.2,1);}
+  #toast.show{transform:translateX(-50%) translateY(0);}
+  .spin{width:13px;height:13px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+
+  .mk{display:grid;place-items:center;color:#fff;font-weight:800;border:2.5px solid #fff;border-radius:50%;
+    box-shadow:0 3px 10px rgba(15,23,42,.4);transition:transform .12s;font-variant-numeric:tabular-nums;}
+  .mk.pkg{width:27px;height:27px;font-size:12px;}
+  .mk.pkg:hover{transform:scale(1.2);cursor:pointer;}
+  .mk.pkg.late{border-color:#0f172a;box-shadow:0 0 0 3px rgba(15,23,42,.85),0 3px 10px rgba(15,23,42,.4);}
+  .mk.depot{width:36px;height:36px;font-size:18px;border-radius:12px;background:#0f172a;}
+  .mk.courier{width:40px;height:40px;font-size:21px;border:3px solid var(--accent);background:#fff;box-shadow:0 6px 18px rgba(79,70,229,.5);}
+  .pulse{animation:pulse .7s ease-out;}
+  @keyframes pulse{0%{transform:scale(1);}45%{transform:scale(1.55);}100%{transform:scale(1);}}
+  .ring{position:absolute;inset:-7px;border-radius:50%;border:3px solid var(--accent);opacity:.5;animation:ring 1.5s ease-out infinite;}
+  @keyframes ring{0%{transform:scale(.7);opacity:.6;}100%{transform:scale(1.6);opacity:0;}}
+
+  @media(max-width:960px){#stats{display:none;} #player{min-width:0;width:calc(100vw - 36px);}}
+
+  @media (prefers-reduced-motion: reduce){
+    .ring,.pulse,.spin{animation:none!important;}
+    *{transition:none!important;}
+  }
+  .track{cursor:pointer;padding:3px 0;margin:-3px 0;}
+  .track:hover .fill{filter:brightness(1.1);}
+  button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .mk.courier svg{transition:transform .18s ease;}
+
+  #onb{position:absolute;inset:0;z-index:1400;background:rgba(15,23,42,.5);backdrop-filter:blur(3px);
+    display:grid;place-items:center;opacity:1;transition:opacity .3s;}
+  #onb.hide{opacity:0;pointer-events:none;}
+  #onb .card{background:#fff;border-radius:20px;padding:26px 28px;max-width:390px;box-shadow:var(--sh-lg);
+    transform:translateY(0);transition:transform .3s;}
+  #onb.hide .card{transform:translateY(12px);}
+  #onb .ttl{display:flex;align-items:center;gap:11px;margin-bottom:6px;}
+  #onb .ttl .lg{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:grid;place-items:center;flex:none;}
+  #onb h2{margin:0;font-size:18px;font-weight:800;letter-spacing:-.3px;}
+  #onb p{margin:0 0 14px;font-size:13px;color:var(--mut);line-height:1.6;}
+  #onb ul{margin:0 0 18px;padding-left:18px;font-size:13px;color:var(--ink);line-height:2;}
+  #onb .go{width:100%;padding:12px;border:none;border-radius:12px;cursor:pointer;color:#fff;font-weight:700;font-size:14px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 8px 18px rgba(79,70,229,.4);}
+  #onb .go:hover{filter:brightness(1.05);}
+
+  #cmp{position:absolute;inset:0;z-index:1400;background:rgba(15,23,42,.5);backdrop-filter:blur(3px);
+    display:grid;place-items:center;transition:opacity .25s;}
+  #cmp.hide{opacity:0;pointer-events:none;}
+  #cmp .card{background:#fff;border-radius:18px;padding:22px 24px;max-width:460px;width:92%;box-shadow:var(--sh-lg);}
+  #cmp .cmp-head{display:flex;align-items:center;justify-content:space-between;}
+  #cmp h2{margin:0;font-size:17px;font-weight:800;letter-spacing:-.3px;}
+  #cmp .sub{font-size:12px;color:var(--mut);margin:2px 0 14px;}
+  #cmp table{width:100%;border-collapse:collapse;font-size:13px;}
+  #cmp th{text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--faint);font-weight:700;padding:6px 8px;border-bottom:1px solid var(--line);}
+  #cmp th:first-child{text-align:left;}
+  #cmp td{padding:9px 8px;border-bottom:1px solid #f1f5f9;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;}
+  #cmp td:first-child{text-align:left;}
+  #cmp tr.best td{background:rgba(22,163,74,.09);}
+  #cmp .tag{font-size:9px;font-weight:700;color:var(--ok);background:rgba(22,163,74,.14);padding:1px 6px;border-radius:10px;margin-left:6px;text-transform:uppercase;letter-spacing:.4px;}
+  #cmp .x{border:none;background:#f1f5f9;border-radius:9px;width:32px;height:32px;cursor:pointer;color:var(--ink);display:grid;place-items:center;}
+  #cmp .x:hover{background:#e2e8f0;}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="toast"><span class="spin"></span><span id="toast-msg">menghitung rute…</span></div>
+
+<div id="onb">
+  <div class="card">
+    <div class="ttl">
+      <span class="lg"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.4" cy="18" r="2" fill="#fff" stroke="none"/><path d="M5.4 18c0-6 11-3 11-8.4" stroke-dasharray="0.1 3.4"/><path d="M16.4 3.2a4.3 4.3 0 0 0-4.3 4.3c0 3 4.3 7.1 4.3 7.1s4.3-4.1 4.3-7.1a4.3 4.3 0 0 0-4.3-4.3z"/><circle cx="16.4" cy="7.5" r="1.6" fill="#fff" stroke="none"/></svg></span>
+      <h2>Demo Interaktif Courier RL</h2>
+    </div>
+    <p>Rute kurir adaptif berbasis reinforcement learning di peta Jakarta nyata.</p>
+    <ul>
+      <li><b>Seret</b> depot &amp; pin paket untuk memindahkannya</li>
+      <li><b>Klik peta</b> menambah paket · <b>klik pin</b> menghapus</li>
+      <li>Pilih <b>wilayah</b> &amp; <b>algoritma</b>, tekan <b>play</b> untuk animasi</li>
+      <li>Pintasan: <b>Space</b> putar/jeda · <b>R</b> ulang · <b>A</b> acak · <b>C</b> kosongkan</li>
+    </ul>
+    <button class="go" id="onb-ok">Mulai</button>
+  </div>
+</div>
+
+<div id="cmp" class="hide">
+  <div class="card">
+    <div class="cmp-head">
+      <div><h2>Perbandingan Policy</h2><div class="sub">Paket &amp; wilayah sama · diurutkan reward</div></div>
+      <button class="x" id="cmp-x"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <table>
+      <thead><tr><th>Policy</th><th>Reward</th><th>On-time</th><th>Telat</th><th>Waktu</th></tr></thead>
+      <tbody id="cmp-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<div id="sidebar" class="glass">
+  <div class="brandrow">
+    <div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.4" cy="18" r="2" fill="#fff" stroke="none"/><path d="M5.4 18c0-6 11-3 11-8.4" stroke-dasharray="0.1 3.4"/><path d="M16.4 3.2a4.3 4.3 0 0 0-4.3 4.3c0 3 4.3 7.1 4.3 7.1s4.3-4.1 4.3-7.1a4.3 4.3 0 0 0-4.3-4.3z"/><circle cx="16.4" cy="7.5" r="1.6" fill="#fff" stroke="none"/></svg></div>
+    <div>
+      <h1>Courier RL</h1>
+    </div>
+  </div>
+  <div class="chip"><span id="area">memuat…</span></div>
+  <div class="divider"></div>
+  <div class="block">
+    <p class="sec">Wilayah layanan</p>
+    <select id="area-sel"></select>
+  </div>
+  <div class="block">
+    <p class="sec">Algoritma rute</p>
+    <select id="policy"></select>
+  </div>
+  <div class="block">
+    <p class="sec">Prioritas paket baru</p>
+    <div class="seg">
+      <button data-p="normal" class="active"><svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px;margin-right:4px" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19.5 7v10L12 21 4.5 17V7z"/><path d="M4.7 7 12 11l7.3-4"/><path d="M12 11v10"/></svg>Normal</button>
+      <button data-p="express"><svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px;margin-right:4px" fill="currentColor"><path d="M13.6 2.4 5.4 13.2a.7.7 0 0 0 .56 1.12H10l-1.2 7.5a.5.5 0 0 0 .9.38l8.9-11.2a.7.7 0 0 0-.55-1.13H13.4l1.07-6.6a.5.5 0 0 0-.87-.37z"/></svg>Express</button>
+      <button data-p="urgent"><svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px;margin-right:4px" fill="currentColor"><path d="M10.4 4.2a1.6 1.6 0 0 1 3.2 0l-.5 9a1.1 1.1 0 0 1-2.2 0z"/><circle cx="12" cy="18.6" r="1.9"/></svg>Urgent</button>
+    </div>
+  </div>
+  <div class="block">
+    <p class="sec">Aksi</p>
+    <div class="btns" style="margin-bottom:8px;">
+      <button class="btn" id="rand"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:5px" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 4h4.5v4.5"/><path d="M4 20 20 4"/><path d="M15.5 20H20v-4.5"/><path d="M14.5 14.5 20 20"/><path d="M4 4l5 5"/></svg>Acak</button>
+      <button class="btn" id="clear"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:5px" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6h17"/><path d="M9.5 6V4.6A1.6 1.6 0 0 1 11.1 3h1.8a1.6 1.6 0 0 1 1.6 1.6V6"/><path d="M18 6v12.6a1.6 1.6 0 0 1-1.6 1.6H7.6A1.6 1.6 0 0 1 6 18.6V6"/><path d="M10 10.5v6"/><path d="M14 10.5v6"/></svg>Kosongkan</button>
+    </div>
+    <button class="btn tgl on" id="auto" style="width:100%;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M20.5 4v4.6h-4.6"/><path d="M3.5 20v-4.6h4.6"/><path d="M19.6 9.3A8 8 0 0 0 5.3 6.9L3.5 8.6M20.5 15.4l-1.8 1.7A8 8 0 0 1 4.4 14.7"/></svg>Auto-recompute: ON</button>
+    <button class="btn" id="compare" style="width:100%;margin-top:8px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Bandingkan semua policy</button>
+  </div>
+  <p class="hint">
+    <span class="kbd">Seret</span> depot &amp; paket · <span class="kbd">Klik peta</span> tambah ·
+    <span class="kbd">Klik pin</span> hapus
+  </p>
+  <div class="divider"></div>
+  <div class="legend">
+    <div class="lh">Legenda</div>
+    <div class="row"><span><i class="sw" style="background:var(--normal)"></i>Normal</span><span><i class="sw" style="background:var(--express)"></i>Express</span><span><i class="sw" style="background:var(--urgent)"></i>Urgent</span></div>
+    <div class="row"><span><i class="sw" style="background:#fff;border:2px solid #0f172a"></i>Telat</span><span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="color:#4f46e5"><circle cx="5.8" cy="17" r="2.8"/><circle cx="18.2" cy="17" r="2.8"/><path d="M5.8 17 8.6 9.4h4.4"/><path d="M8.6 9.4H6.2"/><path d="M13 9.4l3 4.6h2.2"/><path d="M13 9.4l1.6-3.2h2.6"/><path d="M8.7 14h6.2"/></svg>Kurir</span><span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:#0f172a"><path d="M3.5 20.5V9.2L12 4l8.5 5.2v11.3"/><path d="M3 20.5h18"/><path d="M9 20.5V13h6v7.5"/><path d="M9 13h6"/></svg>Depot</span></div>
+    <div class="row"><span><i class="swl" style="background:#4338ca"></i>Rute</span><span><i class="sw" style="background:#0b1220;opacity:.5"></i>Luar wilayah</span></div>
+  </div>
+</div>
+
+<div id="stats" class="glass">
+  <div class="stats-head">
+    <div class="t">Hasil · <span class="c" id="pcount">0</span> paket</div>
+    <span class="policy-pill" id="curpol">·</span>
+  </div>
+  <div class="tiles">
+    <div class="tile hero"><div class="k">Total reward</div><div class="v" id="m_rew">–</div></div>
+    <div class="tile"><div class="v" id="m_del">–</div><div class="k">Terkirim</div></div>
+    <div class="tile warn"><div class="v" id="m_late">–</div><div class="k">Telat</div></div>
+    <div class="tile"><div class="v" id="m_time">–</div><div class="k">Total waktu</div></div>
+    <div class="tile"><div class="v" id="m_dist">–</div><div class="k">Jarak tempuh</div></div>
+  </div>
+</div>
+
+<div id="player" class="glass">
+  <button class="pbtn" id="restart" title="Ulang dari awal"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4.2v4.6h4.6"/><path d="M3.9 8.8A8.5 8.5 0 1 1 4 15.4"/></svg></button>
+  <button class="pbtn play" id="play" title="Putar / jeda"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8.4 5.6a1 1 0 0 1 1.53-.85l9.2 6.4a1 1 0 0 1 0 1.7l-9.2 6.4A1 1 0 0 1 8.4 18.4z"/></svg></button>
+  <div class="clock"><div class="v" id="clock">0</div><span class="lbl">MENIT</span></div>
+  <div class="pbar">
+    <div class="prow"><span id="p_state">siap diputar</span><span id="p_eta">0 / 0 mnt</span></div>
+    <div class="track"><div class="fill" id="fill"></div></div>
+  </div>
+  <div class="speed"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="opacity:.55"><path d="M3 6.4a1 1 0 0 1 1.55-.83L11 11.2a1 1 0 0 1 0 1.6L4.55 18.4A1 1 0 0 1 3 17.6z"/><path d="M12.5 6.4a1 1 0 0 1 1.55-.83L20.5 11.2a1 1 0 0 1 0 1.6l-6.45 4.83A1 1 0 0 1 12.5 17.6z"/></svg><input id="speed" type="range" min="0.5" max="4" step="0.5" value="1"><span id="spdlbl">1×</span></div>
+</div>
+
+
+<script>
+const COLORS={normal:'#2563eb',express:'#7c3aed',urgent:'#dc2626'};
+const LABEL={random:'Random',nearest_neighbor:'Nearest Neighbor',earliest_deadline:'Earliest Deadline',
+  greedy_score:'Greedy Score',ppo_agent:'PPO Agent'};
+const ICON_PLAY='<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M8.4 5.6a1 1 0 0 1 1.53-.85l9.2 6.4a1 1 0 0 1 0 1.7l-9.2 6.4A1 1 0 0 1 8.4 18.4z"/></svg>';
+const ICON_PAUSE='<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><rect x="6.5" y="5" width="3.8" height="14" rx="1.5"/><rect x="13.7" y="5" width="3.8" height="14" rx="1.5"/></svg>';
+const ICON_REFRESH='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><path d="M20.5 4v4.6h-4.6"/><path d="M3.5 20v-4.6h4.6"/><path d="M19.6 9.3A8 8 0 0 0 5.3 6.9L3.5 8.6M20.5 15.4l-1.8 1.7A8 8 0 0 1 4.4 14.7"/></svg>';
+let map,depotMarker,pkgs=[],newPriority='normal',auto=true,startHour=8,serviceBounds=null;
+let routeFull=null,routeTrail=null,routeCase=null,courier=null,boundaryRings=[],currentArea=null,currentPolicy='greedy_score';
+let anim={route:[],times:[],stops:[],total:0,t:0,playing:false,raf:null,last:0,spd:1,fired:0};
+
+function geomToRings(geom){
+  const rings=[];if(!geom)return rings;
+  const polys=geom.type==='Polygon'?[geom.coordinates]:geom.type==='MultiPolygon'?geom.coordinates:[];
+  polys.forEach(poly=>{if(poly&&poly[0])rings.push(poly[0].map(c=>[c[1],c[0]]));});
+  return rings;
+}
+function pointInRing(lat,lng,ring){
+  let inside=false;
+  for(let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const yi=ring[i][0],xi=ring[i][1],yj=ring[j][0],xj=ring[j][1];
+    if(((yi>lat)!==(yj>lat))&&(lng<(xj-xi)*(lat-yi)/((yj-yi)||1e-12)+xi))inside=!inside;
+  }
+  return inside;
+}
+function inArea(ll){
+  if(boundaryRings.length)return boundaryRings.some(r=>pointInRing(ll.lat,ll.lng,r));
+  return !serviceBounds||serviceBounds.contains(ll);
+}
+
+const div=(cls,html,size,anch)=>L.divIcon({className:'',iconSize:size,iconAnchor:anch||[size[0]/2,size[1]/2],html:html});
+function pkgIcon(p,seq,late){const bg=COLORS[p]||COLORS.normal;
+  return div('', `<div class="mk pkg ${late?'late':''}" style="background:${bg}">${seq??''}</div>`,[26,26]);}
+const SVG_SCOOTER=`<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="color:#4f46e5"><circle cx="5.8" cy="17" r="2.8"/><circle cx="18.2" cy="17" r="2.8"/><path d="M5.8 17 8.6 9.4h4.4"/><path d="M8.6 9.4H6.2"/><path d="M13 9.4l3 4.6h2.2"/><path d="M13 9.4l1.6-3.2h2.6"/><path d="M8.7 14h6.2"/></svg>`;
+const SVG_DEPOT=`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 20.5V9.2L12 4l8.5 5.2v11.3"/><path d="M3 20.5h18"/><path d="M9 20.5V13h6v7.5"/><path d="M9 13h6"/></svg>`;
+function depotIcon(){return div('', `<div class="mk depot">${SVG_DEPOT}</div>`,[34,34]);}
+function courierIcon(){return div('', `<div style="position:relative"><span class="ring"></span><div class="mk courier">${SVG_SCOOTER}</div></div>`,[38,38]);}
+
+let tT=null;
+function toast(msg,spin=true,hold=0){const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.querySelector('.spin').style.display=spin?'block':'none';
+  t.classList.add('show');clearTimeout(tT);
+  if(!spin||hold){tT=setTimeout(()=>t.classList.remove('show'),hold||1100);}}
+function hideToast(){document.getElementById('toast').classList.remove('show');}
+
+function addPackage(latlng,priority){
+  const m=L.marker(latlng,{draggable:true,icon:pkgIcon(priority,null,false)}).addTo(map);
+  const e={marker:m,priority};
+  m.on('dragstart',()=>{m._prev=m.getLatLng();});
+  m.on('dragend',()=>{if(!inArea(m.getLatLng())){m.setLatLng(m._prev||latlng);toast('paket harus di dalam wilayah',false,1300);}schedule();});
+  m.on('click',ev=>{L.DomEvent.stopPropagation(ev);removePackage(e);});
+  pkgs.push(e);count();return e;
+}
+function removePackage(e){map.removeLayer(e.marker);pkgs=pkgs.filter(x=>x!==e);count();schedule();}
+function clearPackages(){pkgs.forEach(p=>map.removeLayer(p.marker));pkgs=[];count();clearRoute();resetPlayer();}
+function count(){document.getElementById('pcount').textContent=pkgs.length;}
+function clearRoute(){[routeCase,routeFull,routeTrail].forEach(l=>l&&map.removeLayer(l));routeCase=routeFull=routeTrail=null;
+  if(courier){map.removeLayer(courier);courier=null;}}
+
+let timer=null;
+function schedule(){if(!auto)return;clearTimeout(timer);timer=setTimeout(computeRoute,260);}
+async function computeRoute(){
+  const dl=depotMarker.getLatLng();
+  const payload={area:currentArea,depot:{lat:dl.lat,lon:dl.lng},policy:sel().value,
+    packages:pkgs.map(p=>{const ll=p.marker.getLatLng();return{lat:ll.lat,lon:ll.lng,priority:p.priority};})};
+  toast('menghitung rute…',true);
+  try{
+    const r=await fetch('/api/route',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();if(d.error){toast('error: '+d.error,false,2500);return;}
+    drawResult(d);hideToast();
+  }catch(e){toast('koneksi gagal',false,2500);}
+}
+function sel(){return document.getElementById('policy');}
+
+function drawResult(d){
+  clearRoute();
+  const R=d.route||[];
+  if(R.length>1){
+    routeCase=L.polyline(R,{color:'#ffffff',weight:10,opacity:.95,lineCap:'round',lineJoin:'round'}).addTo(map);
+    routeFull=L.polyline(R,{color:'#a5b4fc',weight:5.5,opacity:.95,lineCap:'round',lineJoin:'round'}).addTo(map);
+    routeTrail=L.polyline([R[0]],{color:'#4338ca',weight:5.5,opacity:1,lineCap:'round',lineJoin:'round'}).addTo(map);
+    courier=L.marker(R[0],{icon:courierIcon(),zIndexOffset:1000,interactive:false}).addTo(map);
+  }
+  (d.packages||[]).forEach(p=>{const e=pkgs[p.id];if(!e)return;
+    e.marker.setIcon(pkgIcon(p.priority,p.seq,p.late));
+    e.late=p.late;
+    e.marker.bindTooltip(`<b>Paket ${p.id}</b> · ${p.priority}<br>deadline ${Math.round(p.deadline)} mnt<br>`+
+      (p.delivered?`kirim @ ${Math.round(p.delivery_time)} mnt, ${p.late?'TELAT':'tepat waktu'}`:'belum'),{direction:'top',offset:[0,-12]});});
+  const m=d.metrics||{};
+  setNum('m_rew',Math.round(m.total_reward||0));set('m_del',`${m.delivered||0}/${m.total_packages||0}`);
+  setNum('m_late',m.late_packages||0);setNum('m_time',Math.round(m.total_travel_minutes||0),'m');
+  setNum('m_dist',m.total_distance_km||0,'km',1);
+  document.getElementById('curpol').textContent=LABEL[d.policy]||d.policy;
+  startHour=d.start_hour??startHour;
+  anim.route=R;anim.times=d.route_times||[];anim.stops=d.stops||[];
+  anim.total=anim.times.length?anim.times[anim.times.length-1]:0;
+  resetPlayer();if(R.length>1)play();
+}
+function set(id,v){document.getElementById(id).textContent=v;}
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function setNum(id,to,suffix='',dec=0){
+  const el=document.getElementById(id);
+  const fmt=v=>(dec?v.toFixed(dec):Math.round(v))+suffix;
+  const from=parseFloat(el.dataset.v||'0')||0; el.dataset.v=to;
+  if(REDUCED||from===to){el.textContent=fmt(to);return;}
+  const t0=performance.now(),dur=440;
+  (function step(t){const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);
+    el.textContent=fmt(from+(to-from)*e); if(k<1)requestAnimationFrame(step);})(t0);
+}
+
+function posAt(t){const T=anim.times,R=anim.route;if(!R.length)return null;
+  if(t<=0)return{ll:R[0],idx:0};if(t>=anim.total)return{ll:R[R.length-1],idx:R.length-1};
+  let i=0;while(i<T.length-1&&T[i+1]<t)i++;
+  const seg=(T[i+1]-T[i])||1,f=(t-T[i])/seg;
+  return{ll:[R[i][0]+(R[i+1][0]-R[i][0])*f,R[i][1]+(R[i+1][1]-R[i][1])*f],idx:i};}
+function render(){const p=posAt(anim.t);if(!p)return;
+  if(courier){courier.setLatLng(p.ll);
+    const nx=anim.route[Math.min(p.idx+1,anim.route.length-1)];
+    const el=courier.getElement();
+    if(el&&nx){const s=el.querySelector('.mk.courier');if(s)s.style.transform=(nx[1]-p.ll[1])<-1e-9?'scaleX(-1)':'scaleX(1)';}}
+  if(routeTrail)routeTrail.setLatLngs(anim.route.slice(0,p.idx+1).concat([p.ll]));
+  document.getElementById('clock').textContent=Math.round(anim.t);
+  document.getElementById('fill').style.width=(anim.total?Math.min(100,anim.t/anim.total*100):0)+'%';
+  document.getElementById('p_eta').textContent=`dari ${Math.round(anim.total)} mnt`;
+  while(anim.fired<anim.stops.length && anim.t>=anim.times[anim.stops[anim.fired].i]){
+    const e=pkgs[anim.stops[anim.fired].id];
+    if(e){const el=e.marker.getElement();if(el){const d=el.querySelector('.mk');if(d){d.classList.remove('pulse');void d.offsetWidth;d.classList.add('pulse');}}}
+    anim.fired++;}
+}
+function tick(ts){if(!anim.playing)return;if(!anim.last)anim.last=ts;
+  const dt=(ts-anim.last)/1000;anim.last=ts;
+  const base=anim.total>0?anim.total/8:1;
+  anim.t+=base*anim.spd*dt;
+  if(anim.t>=anim.total){anim.t=anim.total;render();stop();document.getElementById('p_state').textContent='selesai';return;}
+  render();anim.raf=requestAnimationFrame(tick);}
+function play(){if(anim.total<=0)return;if(anim.t>=anim.total)anim.t=0,anim.fired=0;
+  anim.playing=true;anim.last=0;document.getElementById('play').innerHTML=ICON_PAUSE;
+  document.getElementById('p_state').textContent='memutar…';anim.raf=requestAnimationFrame(tick);}
+function stop(){anim.playing=false;cancelAnimationFrame(anim.raf);document.getElementById('play').innerHTML=ICON_PLAY;}
+function toggle(){anim.playing?(stop(),document.getElementById('p_state').textContent='jeda'):play();}
+function resetPlayer(){stop();anim.t=0;anim.fired=0;render();
+  document.getElementById('p_state').textContent=anim.total>0?'siap diputar':'tambah paket dulu';}
+
+function buildArea(cfg){
+  if(map){map.remove();map=null;}
+  pkgs=[];routeFull=routeTrail=courier=null;serviceBounds=null;boundaryRings=[];
+  startHour=cfg.start_hour??8;
+  document.getElementById('area').textContent=cfg.synthetic?'Synthetic grid':cfg.area;
+  map=L.map('map',{zoomControl:false}).setView(cfg.center,15);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    {maxZoom:20,attribution:'© OpenStreetMap © CARTO'}).addTo(map);
+
+  if(cfg.boundary){
+    boundaryRings=geomToRings(cfg.boundary);
+    serviceBounds=L.geoJSON(cfg.boundary).getBounds();
+  }else if(cfg.bounds){
+    serviceBounds=L.latLngBounds(cfg.bounds);
+    const s=cfg.bounds[0][0],w=cfg.bounds[0][1],n=cfg.bounds[1][0],e=cfg.bounds[1][1];
+    boundaryRings=[[[s,w],[s,e],[n,e],[n,w]]];
+  }
+  if(serviceBounds){
+    const p=serviceBounds.pad(3);
+    const outer=[[p.getSouth(),p.getWest()],[p.getSouth(),p.getEast()],[p.getNorth(),p.getEast()],[p.getNorth(),p.getWest()]];
+    L.polygon([outer,...boundaryRings],{stroke:false,fillColor:'#0b1220',fillOpacity:.58,fillRule:'evenodd',interactive:false}).addTo(map);
+    if(cfg.boundary)
+      L.geoJSON(cfg.boundary,{style:{color:'#4f46e5',weight:2.5,fill:false,dashArray:'7,6'},interactive:false}).addTo(map);
+    else
+      L.rectangle(serviceBounds,{color:'#4f46e5',weight:2,fill:false,dashArray:'7,6',interactive:false}).addTo(map);
+    map.fitBounds(serviceBounds,{padding:[40,40]});
+    map.setMaxBounds(serviceBounds.pad(0.35));
+    map.setMinZoom(Math.max(12,map.getBoundsZoom(serviceBounds)-1));
+  }
+
+  depotMarker=L.marker(cfg.depot,{draggable:true,icon:depotIcon(),zIndexOffset:900}).addTo(map);
+  depotMarker.bindTooltip('Depot (seret untuk memindah)',{direction:'top',offset:[0,-14]});
+  depotMarker.on('dragstart',()=>{depotMarker._prev=depotMarker.getLatLng();});
+  depotMarker.on('dragend',()=>{if(!inArea(depotMarker.getLatLng())){depotMarker.setLatLng(depotMarker._prev||cfg.depot);toast('depot harus di dalam wilayah',false,1400);}schedule();});
+
+  const s=sel();s.innerHTML='';
+  (cfg.policies||[]).forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=LABEL[p]||p;s.appendChild(o);});
+  const avail=cfg.policies||[];
+  s.value=avail.includes(currentPolicy)?currentPolicy:(avail.includes('greedy_score')?'greedy_score':avail[0]);
+  currentPolicy=s.value;
+
+  (cfg.packages||[]).forEach(p=>addPackage([p.lat,p.lon],p.priority));
+  map.on('click',e=>{
+    if(!inArea(e.latlng)){toast('di luar wilayah, tidak bisa menaruh paket',false,1700);return;}
+    addPackage(e.latlng,newPriority);schedule();});
+
+  resetPlayer();computeRoute();
+}
+
+async function loadArea(key){
+  toast('memuat wilayah…',true);
+  try{
+    const cfg=await(await fetch('/api/init?area='+encodeURIComponent(key))).json();
+    if(cfg.error){toast('error: '+cfg.error,false,2500);return;}
+    currentArea=cfg.area_key||key;buildArea(cfg);hideToast();
+  }catch(e){toast('gagal memuat wilayah',false,2500);}
+}
+
+async function init(){
+  const cfg=await(await fetch('/api/init')).json();
+  const asel=document.getElementById('area-sel');asel.innerHTML='';
+  (cfg.areas||[]).forEach(a=>{const o=document.createElement('option');o.value=a.key;o.textContent=a.label;asel.appendChild(o);});
+  asel.value=cfg.area_key;currentArea=cfg.area_key;
+  asel.onchange=()=>loadArea(asel.value);
+  buildArea(cfg);
+}
+
+document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');newPriority=b.dataset.p;});
+document.getElementById('clear').onclick=clearPackages;
+document.getElementById('rand').onclick=async()=>{const cfg=await(await fetch('/api/init?area='+encodeURIComponent(currentArea))).json();
+  clearPackages();(cfg.packages||[]).forEach(p=>addPackage([p.lat,p.lon],p.priority));computeRoute();};
+document.getElementById('auto').onclick=e=>{auto=!auto;e.currentTarget.classList.toggle('on',auto);
+  e.currentTarget.innerHTML=ICON_REFRESH+(auto?'Auto-recompute: ON':'Auto-recompute: OFF');if(auto)computeRoute();};
+sel().onchange=()=>{currentPolicy=sel().value;computeRoute();};
+document.getElementById('play').onclick=toggle;
+document.getElementById('restart').onclick=()=>{anim.t=0;anim.fired=0;render();play();};
+document.getElementById('speed').oninput=e=>{anim.spd=parseFloat(e.target.value);document.getElementById('spdlbl').textContent=anim.spd+'×';};
+
+const trackEl=document.querySelector('.track');
+trackEl.addEventListener('click',e=>{
+  if(anim.total<=0)return;
+  const r=trackEl.getBoundingClientRect();
+  anim.t=Math.min(1,Math.max(0,(e.clientX-r.left)/r.width))*anim.total;
+  anim.fired=anim.stops.filter(s=>anim.t>=anim.times[s.i]).length;
+  render();
+});
+
+document.addEventListener('keydown',e=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='select'||tag==='textarea')return;
+  if(e.code==='Space'){e.preventDefault();toggle();}
+  else if(e.key==='r'||e.key==='R'){anim.t=0;anim.fired=0;render();play();}
+  else if(e.key==='a'||e.key==='A'){document.getElementById('rand').click();}
+  else if(e.key==='c'||e.key==='C'){clearPackages();}
+});
+
+(function(){const onb=document.getElementById('onb');
+  if(localStorage.getItem('courier_onb_seen')){onb.classList.add('hide');}
+  document.getElementById('onb-ok').onclick=()=>{onb.classList.add('hide');try{localStorage.setItem('courier_onb_seen','1');}catch(_){}};})();
+
+document.getElementById('cmp-x').onclick=()=>document.getElementById('cmp').classList.add('hide');
+document.getElementById('compare').onclick=async()=>{
+  if(!pkgs.length){toast('tambah paket dulu',false,1500);return;}
+  const dl=depotMarker.getLatLng();
+  const payload={area:currentArea,depot:{lat:dl.lat,lon:dl.lng},
+    packages:pkgs.map(p=>{const ll=p.marker.getLatLng();return{lat:ll.lat,lon:ll.lng,priority:p.priority};})};
+  toast('membandingkan semua policy…',true);
+  try{
+    const r=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();hideToast();
+    if(d.error){toast('error: '+d.error,false,2500);return;}
+    const tb=document.getElementById('cmp-body');tb.innerHTML='';
+    (d.results||[]).forEach((row,i)=>{
+      const tr=document.createElement('tr');if(i===0)tr.className='best';
+      tr.innerHTML=`<td>${LABEL[row.policy]||row.policy}${i===0?'<span class="tag">terbaik</span>':''}</td>`+
+        `<td>${row.reward}</td><td>${row.ontime}%</td><td>${row.late}</td><td>${row.time} mnt</td>`;
+      tb.appendChild(tr);
+    });
+    document.getElementById('cmp').classList.remove('hide');
+  }catch(e){toast('koneksi gagal',false,2500);}
+};
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# Keep the image small. NB: the routing graphs (data/maps/*_routing.*) and the
+# trained model (data/checkpoints/ppo_courier.zip) are intentionally NOT ignored —
+# they are baked into the image so the Space runs offline.
+.git
+.github
+.venv
+venv
+env
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.mypy_cache
+
+# Dev-only / not needed at serve time
+tests
+data/_design
+data/_design2
+data/logs
+data/results
+data/results_smoke
+data/checkpoints/*.rewards.json
+data/checkpoints/*.config.yaml
+data/checkpoints/dqn_*
+data/checkpoints/ppo_smoke*
+data/maps/synthetic*
+data/maps/*_drive.graphml
+data/maps/*_drive.boundary.geojson
+
+PRD_*.md
+assets

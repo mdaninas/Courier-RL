@@ -1,0 +1,37 @@
+project:
+  name: courier-rl-smoke
+  seed: 7
+
+map:
+  force_synthetic: true
+  synthetic_grid_size: 10
+  cache_path: "data/maps/synthetic_smoke.graphml"
+
+simulation:
+  num_packages: 10
+  candidate_package_count: 6
+  max_episode_minutes: 480
+  start_hour: 8
+  max_steps: 100
+
+traffic:
+  enable_dynamic_traffic: true
+  num_auto_hotspots: 2
+  update_every_minutes: 15
+
+training:
+  algorithm: PPO
+  total_timesteps: 4000
+  n_steps: 512
+  batch_size: 64
+  save_path: "data/checkpoints/ppo_smoke.zip"
+  log_dir: "data/logs"
+
+evaluation:
+  episodes: 10
+  results_dir: "data/results_smoke"
+  compare_with:
+    - random
+    - nearest_neighbor
+    - earliest_deadline
+    - greedy_score

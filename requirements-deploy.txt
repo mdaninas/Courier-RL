@@ -1,0 +1,10 @@
+# Lean runtime for the deployed interactive demo (Hugging Face Space).
+# PyTorch (CPU) is installed separately in the Dockerfile from the CPU wheel index.
+# osmnx/geopandas/folium/matplotlib/streamlit are NOT needed at serve time:
+# the road graphs are pre-baked (GraphML) and loaded via networkx.
+gymnasium>=0.29
+stable-baselines3==2.8.0
+numpy>=1.26
+networkx>=3.2
+shapely>=2.0
+PyYAML>=6.0

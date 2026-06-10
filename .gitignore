@@ -1,0 +1,63 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ---- Virtual envs ----
+venv/
+.venv/
+env/
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ---- Generated artifacts (scoped to data/; dir structure kept via .gitkeep) ----
+# Large OSM caches + boundary polygons -> regenerate with scripts/download_map.py
+data/maps/*.graphml
+data/maps/*.geojson
+# Trained models, reward logs, per-run configs
+data/checkpoints/*
+# Monitor csv, reward curves, server logs
+data/logs/*
+# Evaluation csv/json, comparison charts, route maps
+data/results/*
+data/results_smoke/*
+
+# Re-include the .gitkeep placeholders so empty dirs survive a clone
+!data/maps/.gitkeep
+!data/checkpoints/.gitkeep
+!data/logs/.gitkeep
+!data/results/.gitkeep
+
+# ---- Deployment assets (baked into the Hugging Face Space image) — keep tracked ----
+!data/maps/menteng_routing.graphml
+!data/maps/menteng_routing.boundary.geojson
+!data/maps/kebayoran_baru_routing.graphml
+!data/maps/kebayoran_baru_routing.boundary.geojson
+!data/maps/tebet_routing.graphml
+!data/maps/tebet_routing.boundary.geojson
+!data/checkpoints/ppo_courier.zip
+
+# ---- Tensorboard ----
+runs/
+*.tfevents.*
+
+# ---- Internal docs ----
+PRD_Adaptive_Courier_Routing_RL_Real_World_Map.md
+
+# ---- Design handoff bundles (reference only) ----
+data/_design/
+data/_design2/
+
+# NOTE: source assets such as src/visualization/static/*.html are intentionally
+# NOT ignored -- only generated files under data/ are.

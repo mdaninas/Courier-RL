@@ -1,0 +1,50 @@
+project:
+  name: adaptive-courier-routing-rl
+  seed: 42
+
+map:
+  place_name: "Menteng, Jakarta, Indonesia"
+  network_type: "drive"
+  cache_path: "data/maps/menteng_drive.graphml"
+
+simulation:
+  num_packages: 20
+  max_episode_minutes: 480
+  start_hour: 8
+  candidate_package_count: 10
+  return_to_depot: false
+
+traffic:
+  enable_dynamic_traffic: true
+  rush_hour_morning: [7, 9]
+  rush_hour_evening: [17, 19]
+  base_multiplier: 1.0
+  max_multiplier: 3.5
+  random_incident_probability: 0.05
+  hotspots:
+    - {lat: -6.1960, lon: 106.8330, radius_m: 800, multiplier: 2.0}
+    - {lat: -6.2010, lon: 106.8280, radius_m: 600, multiplier: 1.8}
+
+reward:
+  base_delivery_reward: 100
+  express_multiplier: 1.5
+  urgent_multiplier: 2.0
+  travel_time_penalty_weight: 0.2
+  lateness_penalty_weight: 4.0
+  completion_bonus: 500
+  invalid_action_penalty: 100
+
+training:
+  algorithm: PPO
+  total_timesteps: 200000
+  learning_rate: 0.0003
+  gamma: 0.99
+  save_path: "data/checkpoints/ppo_courier.zip"
+
+evaluation:
+  episodes: 50
+  compare_with:
+    - random
+    - nearest_neighbor
+    - earliest_deadline
+    - greedy_score
