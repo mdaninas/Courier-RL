@@ -125,7 +125,37 @@
   .ring{position:absolute;inset:-7px;border-radius:50%;border:3px solid var(--accent);opacity:.5;animation:ring 1.5s ease-out infinite;}
   @keyframes ring{0%{transform:scale(.7);opacity:.6;}100%{transform:scale(1.6);opacity:0;}}
 
+  #navtgl{display:none;position:absolute;z-index:1100;top:12px;left:12px;width:46px;height:46px;
+    place-items:center;border:1px solid var(--panel-brd);border-radius:13px;cursor:pointer;color:var(--ink);
+    background:var(--panel);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%);
+    box-shadow:var(--sh);transition:background .15s;}
+  #navtgl:active{background:#eef1f8;}
+
   @media(max-width:960px){#stats{display:none;} #player{min-width:0;width:calc(100vw - 36px);}}
+
+  /* phones: collapsible top sheet (toggle) + full-width player */
+  @media(max-width:640px){
+    #navtgl{display:grid;}
+    #sidebar{top:66px;left:8px;right:8px;width:auto;max-width:none;max-height:calc(100vh - 150px);
+      padding:13px 14px;border-radius:14px;opacity:0;transform:translateY(-8px);pointer-events:none;
+      transition:opacity .22s ease,transform .22s ease;}
+    #sidebar.open{opacity:1;transform:translateY(0);pointer-events:auto;}
+    .brandrow h1{font-size:14.5px;}
+    .chip{margin-top:9px;}
+    .divider{margin:12px 0;}
+    .block{margin-bottom:12px;}
+    .hint{line-height:1.7;}
+    #player{left:8px;right:8px;bottom:10px;transform:none;width:auto;min-width:0;
+      gap:11px;padding:10px 13px;border-radius:14px;}
+    #player .speed{display:none;}
+    .clock{min-width:42px;}
+    .clock .v{font-size:14px;}
+    .pbtn{width:38px;height:38px;}
+    .pbtn.play{width:44px;height:44px;}
+    #onb .card{max-width:none;width:calc(100vw - 28px);padding:22px 22px;}
+    #onb h2{font-size:16.5px;}
+    #cmp .card{padding:18px 18px;}
+  }
 
   @media (prefers-reduced-motion: reduce){
     .ring,.pulse,.spin{animation:none!important;}
@@ -172,6 +202,7 @@
 </head>
 <body>
 <div id="map"></div>
+<button id="navtgl" aria-label="Buka panel kontrol" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
 <div id="toast"><span class="spin"></span><span id="toast-msg">menghitung rute…</span></div>
 
 <div id="onb">
@@ -523,6 +554,13 @@ document.addEventListener('keydown',e=>{
 (function(){const onb=document.getElementById('onb');
   if(localStorage.getItem('courier_onb_seen')){onb.classList.add('hide');}
   document.getElementById('onb-ok').onclick=()=>{onb.classList.add('hide');try{localStorage.setItem('courier_onb_seen','1');}catch(_){}};})();
+
+(function(){const tgl=document.getElementById('navtgl'),sb=document.getElementById('sidebar');
+  const MENU='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+  const CLOSE='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  tgl.addEventListener('click',()=>{const open=sb.classList.toggle('open');
+    tgl.setAttribute('aria-expanded',open);tgl.innerHTML=open?CLOSE:MENU;
+    tgl.setAttribute('aria-label',open?'Tutup panel kontrol':'Buka panel kontrol');});})();
 
 document.getElementById('cmp-x').onclick=()=>document.getElementById('cmp').classList.add('hide');
 document.getElementById('compare').onclick=async()=>{

@@ -1,0 +1,4 @@
+21:05:11 | INFO    | courier_rl.interactive_app | Loaded compatible model ppo_courier.zip (PPO)
+21:05:11 | INFO    | courier_rl.src.map.osm_loader | Loading cached map from D:\Codingan Pribadi\SERIUS\Kurir RL\data\maps\menteng_routing.graphml
+21:05:11 | INFO    | courier_rl.src.map.osm_loader | Map ready: 1162 nodes, 2320 edges
+21:05:11 | INFO    | courier_rl.interactive_app | Interactive demo serving at http://127.0.0.1:8000  (3 areas)
